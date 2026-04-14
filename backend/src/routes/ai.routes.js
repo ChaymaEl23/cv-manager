@@ -10,6 +10,7 @@ router.post('/generate-letter', aiController.generateCoverLetter);
 router.post('/generate-email', aiController.generateEmail);
 router.post('/adapt-to-offer', aiController.adaptToOffer);
 router.post('/improve-text', aiController.improveText);
+router.get('/cv-pdf', aiController.downloadCvPdf);
 router.get('/documents', aiController.getDocuments);
 router.get('/documents/:id', aiController.getDocument);
 

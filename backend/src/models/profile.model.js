@@ -9,6 +9,7 @@ const profileSchema = new mongoose.Schema({
   linkedIn: { type: String, trim: true },
   github: { type: String, trim: true },
   portfolio: { type: String, trim: true },
+  photo: { type: String, trim: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Profile', profileSchema);

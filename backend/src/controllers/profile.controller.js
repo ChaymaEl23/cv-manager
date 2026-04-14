@@ -14,11 +14,11 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { titreProfessionnel, resume, telephone, adresse, linkedIn, github, portfolio } = req.body;
+    const { titreProfessionnel, resume, telephone, adresse, linkedIn, github, portfolio, photo } = req.body;
 
     const profile = await Profile.findOneAndUpdate(
       { user: req.userId },
-      { titreProfessionnel, resume, telephone, adresse, linkedIn, github, portfolio },
+      { titreProfessionnel, resume, telephone, adresse, linkedIn, github, portfolio, photo },
       { new: true, upsert: true }
     );
 
