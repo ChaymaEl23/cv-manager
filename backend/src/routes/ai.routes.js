@@ -10,6 +10,8 @@ router.post('/generate-letter', aiController.generateCoverLetter);
 router.post('/generate-email', aiController.generateEmail);
 router.post('/adapt-to-offer', aiController.adaptToOffer);
 router.post('/improve-text', aiController.improveText);
+router.post('/send-email', aiController.sendApplicationEmail);
+router.post('/send-application-package', aiController.sendApplicationPackage);
 router.get('/documents', aiController.getDocuments);
 router.get('/documents/:id', aiController.getDocument);
 

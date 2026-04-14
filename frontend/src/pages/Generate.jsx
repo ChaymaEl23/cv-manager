@@ -15,8 +15,14 @@ export default function Generate() {
   const [contentToAdapt, setContentToAdapt] = useState('')
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [copied, setCopied] = useState(false)
+  const [emailTarget, setEmailTarget] = useState('')
+  const [emailSubject, setEmailSubject] = useState('')
+  const [cvAttachmentContent, setCvAttachmentContent] = useState('')
+  const [letterAttachmentContent, setLetterAttachmentContent] = useState('')
 
   useEffect(() => {
     api.get('/job-offers').then(res => setJobOffers(res.data)).catch(console.error)
@@ -26,6 +32,7 @@ export default function Generate() {
 
   const handleGenerate = async () => {
     setError('')
+    setSuccess('')
     setResult('')
 
     if (needsOffer && !selectedOffer) {
@@ -50,6 +57,13 @@ export default function Generate() {
         res = await api.post('/ai/adapt-to-offer', { content: contentToAdapt, jobOfferId: selectedOffer })
       }
       setResult(res.data.contenu)
+      if (selectedType === 'email') {
+        const selected = jobOffers.find(o => o._id === selectedOffer)
+        setEmailTarget(selected?.contactEmail || '')
+        setEmailSubject(`Candidature - ${selected?.titrePoste || ''}`.trim())
+        if (!cvAttachmentContent) setCvAttachmentContent('Collez ici votre CV final pour la piece jointe PDF.')
+        if (!letterAttachmentContent) setLetterAttachmentContent('Collez ici votre lettre finale pour la piece jointe PDF.')
+      }
     } catch (err) {
       console.error('Generate error:', err)
       setError(err.response?.data?.message || err.response?.data?.error || 'Erreur lors de la génération')
@@ -75,6 +89,76 @@ export default function Generate() {
       setError("Erreur lors de l'amélioration")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSendEmail = async () => {
+    if (!selectedOffer) {
+      setError("Veuillez sélectionner une offre d'emploi")
+      return
+    }
+    if (!result.trim()) {
+      setError("Aucun contenu d'email à envoyer")
+      return
+    }
+    if (!emailTarget.trim()) {
+      setError("Veuillez saisir l'email de destination")
+      return
+    }
+
+    setSending(true)
+    setError('')
+    setSuccess('')
+    try {
+      const res = await api.post('/ai/send-email', {
+        jobOfferId: selectedOffer,
+        contenu: result,
+        subject: emailSubject,
+        to: emailTarget,
+      })
+      setSuccess(res.data.message || 'Email envoye avec succes')
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur lors de l'envoi de l'email")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleSendApplicationPackage = async () => {
+    if (!selectedOffer) {
+      setError("Veuillez sélectionner une offre d'emploi")
+      return
+    }
+    if (!result.trim()) {
+      setError("Aucun contenu d'email à envoyer")
+      return
+    }
+    if (!emailTarget.trim()) {
+      setError("Veuillez saisir l'email de destination")
+      return
+    }
+    if (!cvAttachmentContent.trim() || !letterAttachmentContent.trim()) {
+      setError('Veuillez remplir les contenus CV et lettre pour les pieces jointes PDF')
+      return
+    }
+
+    setSending(true)
+    setError('')
+    setSuccess('')
+    try {
+      const res = await api.post('/ai/send-application-package', {
+        jobOfferId: selectedOffer,
+        emailContent: result,
+        cvContent: cvAttachmentContent,
+        letterContent: letterAttachmentContent,
+        subject: emailSubject,
+        to: emailTarget,
+      })
+      setSuccess(res.data.message || 'Candidature complete envoyee')
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur lors de l'envoi du package")
+    } finally {
+      setSending(false)
     }
   }
 
@@ -140,6 +224,65 @@ export default function Generate() {
 
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>
+          )}
+          {success && (
+            <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm">{success}</div>
+          )}
+
+          {selectedType === 'email' && result && (
+            <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
+              <h2 className="font-semibold text-gray-700">Envoi direct à l'entreprise</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email destinataire</label>
+                <input
+                  type="email"
+                  value={emailTarget}
+                  onChange={e => setEmailTarget(e.target.value)}
+                  placeholder="recrutement@entreprise.com"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Objet</label>
+                <input
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="Candidature - Intitulé du poste"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleSendEmail}
+                disabled={sending || loading}
+                className="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {sending ? "Envoi en cours..." : "Envoyer l'email à l'entreprise"}
+              </button>
+              <div className="border-t pt-3 mt-2 space-y-2">
+                <p className="text-sm font-medium text-gray-700">Envoyer avec pieces jointes PDF</p>
+                <textarea
+                  value={cvAttachmentContent}
+                  onChange={e => setCvAttachmentContent(e.target.value)}
+                  rows={5}
+                  placeholder="Contenu CV (sera converti en PDF)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                <textarea
+                  value={letterAttachmentContent}
+                  onChange={e => setLetterAttachmentContent(e.target.value)}
+                  rows={5}
+                  placeholder="Contenu lettre (sera converti en PDF)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                <button
+                  onClick={handleSendApplicationPackage}
+                  disabled={sending || loading}
+                  className="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {sending ? 'Envoi du package...' : 'Envoyer candidature complète (Email + CV PDF + Lettre PDF)'}
+                </button>
+              </div>
+            </div>
           )}
 
           <button onClick={handleGenerate} disabled={loading}

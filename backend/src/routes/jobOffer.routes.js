@@ -6,8 +6,8 @@ const authMiddleware = require('../middleware/auth.middleware');
 router.use(authMiddleware);
 
 router.get('/', jobOfferController.getAll);
-router.post('/', jobOfferController.create);
-router.put('/:id', jobOfferController.update);
-router.delete('/:id', jobOfferController.remove);
+router.post('/', authMiddleware.requireRole('admin'), jobOfferController.create);
+router.put('/:id', authMiddleware.requireRole('admin'), jobOfferController.update);
+router.delete('/:id', authMiddleware.requireRole('admin'), jobOfferController.remove);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const JobOffer = require('../models/jobOffer.model');
 
 exports.getAll = async (req, res) => {
   try {
-    const offers = await JobOffer.find({ user: req.userId }).sort({ createdAt: -1 });
+    const offers = await JobOffer.find().sort({ createdAt: -1 });
     res.json(offers);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });

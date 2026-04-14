@@ -10,8 +10,10 @@ export default function Profile() {
     linkedIn: '',
     github: '',
     portfolio: '',
+    photoUrl: '',
   })
   const [loading, setLoading] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
@@ -28,6 +30,7 @@ export default function Profile() {
           linkedIn: res.data.linkedIn || '',
           github: res.data.github || '',
           portfolio: res.data.portfolio || '',
+          photoUrl: res.data.photoUrl || '',
         })
       } catch (err) {
         console.error(err)
@@ -39,6 +42,38 @@ export default function Profile() {
   }, [])
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const getPhotoSrc = (photoUrl) => {
+    if (!photoUrl) return ''
+    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) return photoUrl
+    const base = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
+    return `${base}${photoUrl}`
+  }
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('photo', file)
+
+    setUploadingPhoto(true)
+    setSuccess('')
+    setError('')
+
+    try {
+      const res = await api.post('/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setForm(prev => ({ ...prev, photoUrl: res.data.photoUrl }))
+      setSuccess('Photo de profil mise a jour!')
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur lors de l'upload de la photo")
+    } finally {
+      setUploadingPhoto(false)
+      e.target.value = ''
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -70,6 +105,28 @@ export default function Profile() {
       {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+        <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+          <p className="text-sm font-medium text-gray-700 mb-3">Photo de profil</p>
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 rounded-full overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
+              {form.photoUrl ? (
+                <img src={getPhotoSrc(form.photoUrl)} alt="Photo profil" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs text-gray-400">Aucune photo</span>
+              )}
+            </div>
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="block text-sm text-gray-600 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700"
+              />
+              <p className="text-xs text-gray-400 mt-1">PNG/JPG/WebP - max 5MB</p>
+              {uploadingPhoto && <p className="text-xs text-blue-600 mt-1">Upload en cours...</p>}
+            </div>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Titre professionnel</label>

@@ -9,6 +9,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 
 const authRoutes = require('./src/routes/auth.routes');
 const profileRoutes = require('./src/routes/profile.routes');
@@ -21,12 +22,13 @@ const aiRoutes = require('./src/routes/ai.routes');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);

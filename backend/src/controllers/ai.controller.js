@@ -6,6 +6,8 @@ const Skill = require('../models/skill.model');
 const Language = require('../models/language.model');
 const JobOffer = require('../models/jobOffer.model');
 const GeneratedDocument = require('../models/generatedDocument.model');
+const mailService = require('../services/mail.service');
+const pdfService = require('../services/pdf.service');
 
 const getUserData = async (userId) => {
   const [profile, experiences, formations, skills, languages] = await Promise.all([
@@ -53,7 +55,7 @@ exports.generateCoverLetter = async (req, res) => {
       return res.status(400).json({ message: 'jobOfferId obligatoire' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await JobOffer.findById(jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
@@ -87,7 +89,7 @@ exports.generateEmail = async (req, res) => {
       return res.status(400).json({ message: 'jobOfferId obligatoire' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await JobOffer.findById(jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
@@ -120,7 +122,7 @@ exports.adaptToOffer = async (req, res) => {
       return res.status(400).json({ message: 'content et jobOfferId obligatoires' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await JobOffer.findById(jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
@@ -180,5 +182,104 @@ exports.getDocument = async (req, res) => {
     res.json(document);
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+};
+
+exports.sendApplicationEmail = async (req, res) => {
+  try {
+    const { jobOfferId, contenu, subject, to } = req.body;
+
+    if (!jobOfferId || !contenu) {
+      return res.status(400).json({ message: 'jobOfferId et contenu obligatoires' });
+    }
+
+    const jobOffer = await JobOffer.findById(jobOfferId);
+    if (!jobOffer) {
+      return res.status(404).json({ message: 'Offre non trouvée' });
+    }
+
+    const targetEmail = (to || jobOffer.contactEmail || '').trim().toLowerCase();
+    if (!targetEmail) {
+      return res.status(400).json({ message: "Email entreprise manquant. Ajoutez contactEmail sur l'offre ou saisissez-le." });
+    }
+
+    const emailSubject = subject?.trim() || `Candidature - ${jobOffer.titrePoste}`;
+
+    await mailService.sendEmail({
+      to: targetEmail,
+      subject: emailSubject,
+      text: contenu,
+    });
+
+    const sentDoc = await GeneratedDocument.create({
+      user: req.userId,
+      type: 'email',
+      contenu,
+      jobOffer: jobOfferId,
+      modeleIA: 'smtp-send',
+      sentTo: targetEmail,
+      sentAt: new Date(),
+    });
+
+    res.json({
+      message: 'Email envoye avec succes',
+      sentTo: targetEmail,
+      documentId: sentDoc._id,
+    });
+  } catch (error) {
+    console.error('sendApplicationEmail ERROR:', error.message, error.stack);
+    res.status(500).json({ message: "Erreur lors de l'envoi de l'email", error: error.message });
+  }
+};
+
+exports.sendApplicationPackage = async (req, res) => {
+  try {
+    const { jobOfferId, emailContent, cvContent, letterContent, subject, to } = req.body;
+
+    if (!jobOfferId || !emailContent || !cvContent || !letterContent) {
+      return res.status(400).json({ message: 'jobOfferId, emailContent, cvContent et letterContent obligatoires' });
+    }
+
+    const jobOffer = await JobOffer.findById(jobOfferId);
+    if (!jobOffer) {
+      return res.status(404).json({ message: 'Offre non trouvée' });
+    }
+
+    const targetEmail = (to || jobOffer.contactEmail || '').trim().toLowerCase();
+    if (!targetEmail) {
+      return res.status(400).json({ message: "Email entreprise manquant. Ajoutez contactEmail sur l'offre ou saisissez-le." });
+    }
+
+    const [cvPdf, letterPdf] = await Promise.all([
+      pdfService.buildPdfBuffer({ title: 'Curriculum Vitae', content: cvContent }),
+      pdfService.buildPdfBuffer({ title: 'Lettre de motivation', content: letterContent }),
+    ]);
+
+    const emailSubject = subject?.trim() || `Candidature complète - ${jobOffer.titrePoste}`;
+
+    await mailService.sendEmail({
+      to: targetEmail,
+      subject: emailSubject,
+      text: emailContent,
+      attachments: [
+        { filename: 'CV.pdf', content: cvPdf, contentType: 'application/pdf' },
+        { filename: 'Lettre-de-motivation.pdf', content: letterPdf, contentType: 'application/pdf' },
+      ],
+    });
+
+    await GeneratedDocument.create({
+      user: req.userId,
+      type: 'email',
+      contenu: emailContent,
+      jobOffer: jobOfferId,
+      modeleIA: 'smtp-send-package',
+      sentTo: targetEmail,
+      sentAt: new Date(),
+    });
+
+    res.json({ message: 'Candidature complete envoyee avec pieces jointes', sentTo: targetEmail });
+  } catch (error) {
+    console.error('sendApplicationPackage ERROR:', error.message, error.stack);
+    res.status(500).json({ message: "Erreur lors de l'envoi du package", error: error.message });
   }
 };
