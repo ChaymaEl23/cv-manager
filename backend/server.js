@@ -18,6 +18,9 @@ const skillRoutes = require('./src/routes/skill.routes');
 const languageRoutes = require('./src/routes/language.routes');
 const jobOfferRoutes = require('./src/routes/jobOffer.routes');
 const aiRoutes = require('./src/routes/ai.routes');
+const User = require('./src/models/user.model');
+const Profile = require('./src/models/profile.model');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
@@ -48,7 +51,39 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+const ensureDefaultHrUser = async () => {
+  const email = 'rh@cvmanager.net';
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    if (existingUser.role !== 'hr') {
+      existingUser.role = 'hr';
+      await existingUser.save();
+    }
+
+    await Profile.findOneAndUpdate({ user: existingUser._id }, { user: existingUser._id }, { upsert: true });
+    return;
+  }
+
+  const password = await bcrypt.hash('humanressorce', 10);
+  const user = await User.create({
+    nom: 'CV Manager',
+    prenom: 'HR',
+    email,
+    password,
+    role: 'hr',
+  });
+
+  await Profile.create({
+    user: user._id,
+    titreProfessionnel: 'HR Manager',
+    resume: 'Compte RH par defaut pour piloter les offres et suivre les candidatures.',
+    telephone: '+212 600 000 000',
+  });
+};
+
 mongoose.connect(process.env.MONGO_URI)
+  .then(() => ensureDefaultHrUser())
   .then(() => {
     console.log('MongoDB connecté');
     app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

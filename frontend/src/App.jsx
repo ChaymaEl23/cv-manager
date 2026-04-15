@@ -2,24 +2,30 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/LoginModern'
 import Register from './pages/RegisterModern'
-import Dashboard from './pages/DashboardModern'
+import Dashboard from './pages/DashboardRoleModern'
 import Profile from './pages/ProfileModern'
 import Experiences from './pages/ExperiencesModern'
 import Formations from './pages/FormationsModern'
 import Skills from './pages/SkillsModern'
 import Languages from './pages/LanguagesModern'
-import JobOffers from './pages/JobOffersModern'
+import JobOffers from './pages/JobOffersRoleModern'
 import Generate from './pages/GenerateModern'
 import Documents from './pages/DocumentsModern'
-import Layout from './components/ModernLayout'
+import Layout from './components/ModernLayoutV2'
 
 const PrivateRoute = ({ children }) => {
-  const { token } = useAuth()
+  const { token, loading } = useAuth()
+  if (loading) {
+    return <div className="auth-background flex min-h-screen items-center justify-center text-slate-600">Chargement...</div>
+  }
   return token ? children : <Navigate to="/login" />
 }
 
 const PublicRoute = ({ children }) => {
-  const { token } = useAuth()
+  const { token, loading } = useAuth()
+  if (loading) {
+    return <div className="auth-background flex min-h-screen items-center justify-center text-slate-600">Chargement...</div>
+  }
   return !token ? children : <Navigate to="/dashboard" />
 }
 

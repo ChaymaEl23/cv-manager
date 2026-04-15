@@ -37,7 +37,7 @@ export default function RegisterModern() {
             <p className="section-title mb-3">Inscription</p>
             <h2 className="text-4xl font-extrabold tracking-[-0.04em] text-slate-800">Creez votre espace</h2>
             <p className="mt-3 text-sm leading-7 text-slate-500">
-              En quelques informations, vous obtenez un espace moderne pour gerer tout votre parcours.
+              Cette inscription cree un compte etudiant pour construire votre CV et candidater facilement.
             </p>
           </div>
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import api from '../services/api'
 import PageHeader from '../components/PageHeader'
 import { SparklesIcon } from '../components/Icons'
+import { useAuth } from '../context/AuthContext'
 
 const types = [
   { value: 'resume', label: 'Resume professionnel', desc: 'Une synthese rapide et convaincante de votre profil' },
@@ -12,6 +13,7 @@ const types = [
 ]
 
 export default function GenerateModern() {
+  const { user } = useAuth()
   const [selectedType, setSelectedType] = useState('resume')
   const [jobOffers, setJobOffers] = useState([])
   const [selectedOffer, setSelectedOffer] = useState('')
@@ -132,10 +134,16 @@ export default function GenerateModern() {
               <p className="section-title mb-4">Offre ciblee</p>
               {jobOffers.length === 0 ? (
                 <div className="rounded-[1.4rem] border border-dashed border-slate-300 bg-slate-50/80 p-5 text-sm text-slate-500">
-                  Aucune offre disponible.{' '}
-                  <Link to="/job-offers" className="font-semibold text-blue-600">
-                    Ajouter une offre
-                  </Link>
+                  {user?.role === 'hr' ? (
+                    <>
+                      Aucune offre disponible.{' '}
+                      <Link to="/job-offers" className="font-semibold text-blue-600">
+                        Ajouter une offre
+                      </Link>
+                    </>
+                  ) : (
+                    "Aucune offre RH ouverte pour l'instant."
+                  )}
                 </div>
               ) : (
                 <select value={selectedOffer} onChange={(e) => setSelectedOffer(e.target.value)} className="field-select">

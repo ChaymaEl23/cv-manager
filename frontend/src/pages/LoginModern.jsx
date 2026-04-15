@@ -75,6 +75,9 @@ export default function LoginModern() {
             <p className="mt-3 text-sm leading-7 text-slate-500">
               Connectez-vous pour reprendre la creation de votre CV et vos candidatures.
             </p>
+            <div className="mt-4 rounded-[1.2rem] border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
+              Compte HR par defaut: <span className="font-semibold">rh@cvmanager.net</span> / <span className="font-semibold">humanressorce</span>
+            </div>
           </div>
 
           {error && <div className="status-banner error mt-6">{error}</div>}

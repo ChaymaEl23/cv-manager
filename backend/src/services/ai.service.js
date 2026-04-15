@@ -104,3 +104,33 @@ Réponds uniquement avec le texte amélioré, sans commentaires.`;
 
   return await generateText(prompt);
 };
+
+exports.generateApplicationPitch = async (profile, experiences, formations, skills, languages, jobOffer) => {
+  const prompt = `Tu es un coach expert des candidatures.
+
+Redige un message de candidature convaincant, humain et professionnel pour postuler a cette offre.
+
+CANDIDAT:
+- Nom: ${profile.user?.prenom || ''} ${profile.user?.nom || ''}
+- Titre: ${profile.titreProfessionnel || ''}
+- Resume: ${profile.resume || ''}
+- Experiences: ${experiences.map((e) => `${e.poste} chez ${e.entreprise}: ${e.description || ''}`).join(' | ')}
+- Formations: ${formations.map((f) => `${f.diplome} - ${f.etablissement}`).join(' | ')}
+- Competences: ${skills.map((s) => `${s.nom}${s.niveau ? ` (${s.niveau})` : ''}`).join(', ')}
+- Langues: ${languages.map((l) => `${l.nom} (${l.niveau})`).join(', ')}
+
+OFFRE:
+- Poste: ${jobOffer.titrePoste}
+- Entreprise: ${jobOffer.entreprise}
+- Description: ${jobOffer.description}
+- Responsabilites: ${(jobOffer.responsibilities || []).join(', ')}
+- Requirements: ${(jobOffer.requirements || []).join(', ')}
+
+Consignes:
+- 140 a 220 mots
+- Montre clairement l'alignement entre le profil et le besoin
+- Termine par une phrase proactive et polie
+- Reponds uniquement avec le message final.`;
+
+  return await generateText(prompt);
+};

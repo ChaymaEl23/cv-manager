@@ -8,6 +8,14 @@ const Language = require('../models/language.model');
 const JobOffer = require('../models/jobOffer.model');
 const GeneratedDocument = require('../models/generatedDocument.model');
 
+const findAccessibleJobOffer = async (user, userId, jobOfferId) => {
+  if (user.role === 'hr') {
+    return JobOffer.findOne({ _id: jobOfferId, user: userId });
+  }
+
+  return JobOffer.findOne({ _id: jobOfferId, statut: 'open' });
+};
+
 const decodeBase64Image = (photo) => {
   if (!photo || typeof photo !== 'string') return null;
   const match = photo.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
@@ -196,7 +204,7 @@ exports.generateCoverLetter = async (req, res) => {
       return res.status(400).json({ message: 'jobOfferId obligatoire' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await findAccessibleJobOffer(req.user, req.userId, jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
@@ -230,7 +238,7 @@ exports.generateEmail = async (req, res) => {
       return res.status(400).json({ message: 'jobOfferId obligatoire' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await findAccessibleJobOffer(req.user, req.userId, jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
@@ -263,7 +271,7 @@ exports.adaptToOffer = async (req, res) => {
       return res.status(400).json({ message: 'content et jobOfferId obligatoires' });
     }
 
-    const jobOffer = await JobOffer.findOne({ _id: jobOfferId, user: req.userId });
+    const jobOffer = await findAccessibleJobOffer(req.user, req.userId, jobOfferId);
     if (!jobOffer) {
       return res.status(404).json({ message: 'Offre non trouvée' });
     }
